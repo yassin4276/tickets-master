@@ -1,0 +1,46 @@
+services:
+  ticketing-postgres:
+    image: postgres:15
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ticketing_db
+    restart: unless-stopped
+    container_name: ticketing-postgres
+    volumes:
+      - ticketing-postgres-data:/var/lib/postgresql/data
+  ticketing-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ticketing-api
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    depends_on:
+      - ticketing-postgres
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+
+      ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING}
+
+      JwtSettings__SecretKey: ${JWT_SECRET_KEY}
+      JwtSettings__Issuer: TicketingAPI
+      JwtSettings__Audience: TicketingAPIUsers
+      JwtSettings__ExpirationMinutes: 60
+      JwtSettings__RefreshTokenExpiryDays: 7
+      JwtSettings__RefreshTokenAudience: TicketingAPIRefresh
+
+      AppUrls__PublicBaseUrl: http://localhost:8080
+
+      EmailSettings__Host: smtp.gmail.com
+      EmailSettings__Port: 587
+      EmailSettings__Username: ${EMAIL_USERNAME}
+      EmailSettings__Password: ${EMAIL_PASSWORD}
+      EmailSettings__FromEmail: ${EMAIL_USERNAME}
+      EmailSettings__FromName: Ticketing Master
+volumes:
+  ticketing-postgres-data:
