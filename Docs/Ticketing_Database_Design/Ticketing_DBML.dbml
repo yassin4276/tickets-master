@@ -1,0 +1,106 @@
+Table Users {
+  Id uuid [pk]
+  FirstName varchar [not null]
+  LastName varchar [not null]
+  Email varchar [not null, unique]
+  PasswordHash text
+  PhoneNumber varchar
+  IsActive boolean [not null, default: true]
+  CreatedAt timestamp [not null]
+}
+
+Table Events {
+  Id uuid [pk]
+  OwnerId uuid [not null, ref: > Users.Id]
+  Name varchar [not null]
+  Description text
+  Status varchar [not null]
+  BookingMode varchar [not null, note: 'Seats or Tickets']
+  CreatedAt timestamp [not null]
+  UpdatedAt timestamp [not null]
+}
+
+Table EventSessions {
+  Id uuid [pk]
+  EventId uuid [not null, ref: > Events.Id]
+  StartDateTime timestamp [not null]
+  EndDateTime timestamp [not null]
+  Location varchar
+  Status varchar [not null]
+}
+
+Table Seats {
+  Id uuid [pk]
+  EventSessionId uuid [not null, ref: > EventSessions.Id]
+  SeatNumber varchar [not null]
+  SeatType varchar [not null]
+  Price decimal [not null]
+  Status varchar [not null]
+  RowVersion bytea
+
+  indexes {
+    (EventSessionId, SeatNumber) [unique]
+  }
+}
+
+Table TicketTypes {
+  Id uuid [pk]
+  EventSessionId uuid [not null, ref: > EventSessions.Id]
+  Name varchar [not null]
+  Price decimal [not null]
+  TotalQuantity int [not null]
+  AvailableQuantity int [not null]
+  Status varchar [not null]
+
+  indexes {
+    (EventSessionId, Name) [unique]
+  }
+}
+
+Table Bookings {
+  Id uuid [pk]
+  UserId uuid [not null, ref: > Users.Id]
+  EventSessionId uuid [not null, ref: > EventSessions.Id]
+  BookingNumber varchar [not null, unique]
+  Status varchar [not null]
+  TotalAmount decimal [not null]
+  ExpiresAt timestamp
+  CreatedAt timestamp [not null]
+  UpdatedAt timestamp [not null]
+}
+
+Table BookingSeats {
+  Id uuid [pk]
+  BookingId uuid [not null, ref: > Bookings.Id]
+  SeatId uuid [not null, ref: > Seats.Id]
+  Price decimal [not null]
+}
+
+Table BookingTicketTypes {
+  Id uuid [pk]
+  BookingId uuid [not null, ref: > Bookings.Id]
+  TicketTypeId uuid [not null, ref: > TicketTypes.Id]
+  Quantity int [not null]
+  UnitPrice decimal [not null]
+}
+
+Table Payments {
+  Id uuid [pk]
+  BookingId uuid [not null, ref: > Bookings.Id]
+  Amount decimal [not null]
+  Status varchar [not null]
+  PaymentMethod varchar [not null]
+  TransactionReference varchar
+  CreatedAt timestamp [not null]
+}
+
+Table Notifications {
+  Id uuid [pk]
+  UserId uuid [not null, ref: > Users.Id]
+  Title varchar [not null]
+  Message text [not null]
+  Type varchar [not null]
+  IsSeen boolean [not null, default: false]
+  CreatedAt timestamp [not null]
+  SeenAt timestamp
+}
