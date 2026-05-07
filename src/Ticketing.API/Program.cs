@@ -79,18 +79,24 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await db.Database.MigrateAsync();
+    // Integration tests create their own SQLite schema via EnsureCreated().
+    // Running migrations here breaks tests with PendingModelChanges warnings treated as errors.
+    if (!app.Environment.IsEnvironment("Testing"))
+    {
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.Database.MigrateAsync();
 
-    var roleManager = scope.ServiceProvider
-        .GetRequiredService<RoleManager<IdentityRole<int>>>();
+        var roleManager = scope.ServiceProvider
+            .GetRequiredService<RoleManager<IdentityRole<int>>>();
 
-    await IdentitySeeder.SeedRolesAsync(roleManager);
+        await IdentitySeeder.SeedRolesAsync(roleManager);
 
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Ticketing.Infrastructure.Identity.ApplicationUser>>();
-    await IdentitySeeder.SeedUsersAsync(userManager);
+        var userManager = scope.ServiceProvider
+            .GetRequiredService<UserManager<Ticketing.Infrastructure.Identity.ApplicationUser>>();
+        await IdentitySeeder.SeedUsersAsync(userManager);
 
-    await DatabaseSeeder.SeedTestDataAsync(scope.ServiceProvider);
+        await DatabaseSeeder.SeedTestDataAsync(scope.ServiceProvider);
+    }
 }
 
 if (app.Environment.IsDevelopment())
