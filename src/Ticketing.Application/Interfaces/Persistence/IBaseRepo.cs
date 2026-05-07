@@ -8,7 +8,7 @@ public interface IBaseRepository<T> where T : class
 
     IQueryable<T> GetByCondition(Expression<Func<T, bool>> predicate);
 
-    Task<T?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
     Task AddAsync(T entity, CancellationToken cancellationToken = default);
 

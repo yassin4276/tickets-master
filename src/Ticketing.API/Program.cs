@@ -2,11 +2,14 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Ticketing.Application;
 using Ticketing.Infrastructure.Auth;
 using Ticketing.Infrastructure.Identity.Seed;
+using Ticketing.Infrastructure.Persistence;
+using Ticketing.Infrastructure.Persistence.Seed;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -76,10 +79,18 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await db.Database.MigrateAsync();
+
     var roleManager = scope.ServiceProvider
         .GetRequiredService<RoleManager<IdentityRole<int>>>();
 
     await IdentitySeeder.SeedRolesAsync(roleManager);
+
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Ticketing.Infrastructure.Identity.ApplicationUser>>();
+    await IdentitySeeder.SeedUsersAsync(userManager);
+
+    await DatabaseSeeder.SeedTestDataAsync(scope.ServiceProvider);
 }
 
 if (app.Environment.IsDevelopment())

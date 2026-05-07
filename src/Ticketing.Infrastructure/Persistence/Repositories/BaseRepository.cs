@@ -23,7 +23,7 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
         return _context.Set<T>().Where(predicate);
     }
 
-    public async Task<T?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _context.Set<T>().FindAsync([id], cancellationToken);
     }
