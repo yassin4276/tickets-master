@@ -4,9 +4,9 @@ using Ticketing.Domain.Entities;
 
 namespace Ticketing.Infrastructure.Persistence.Configurations;
 
-public class BookingConfiguration : IEntityTypeConfiguration<Booking>
+public class BookingConfiguration : IEntityTypeConfiguration<Domain.Entities.Booking>
 {
-    public void Configure(EntityTypeBuilder<Booking> builder)
+    public void Configure(EntityTypeBuilder<Domain.Entities.Booking> builder)
     {
         builder.ToTable("Bookings");
 

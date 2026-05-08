@@ -26,15 +26,13 @@ public class BookingTicketTypeConfiguration : IEntityTypeConfiguration<BookingTi
 
         builder.HasOne(bt => bt.TicketTypes)
             .WithMany(t => t.BookingTicketTypes)
-            .HasForeignKey(bt => bt.Id)
+            .HasForeignKey(bt => bt.TicketTypesId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Basic indexes
         builder.HasIndex(bt => bt.BookingId);
-        builder.HasIndex(bt => bt.Id);
+        builder.HasIndex(bt => bt.TicketTypesId);
 
-        // Business constraint
-        builder.HasIndex(bt => new { bt.BookingId, bt.Id })
+        builder.HasIndex(bt => new { bt.BookingId, bt.TicketTypesId })
             .IsUnique();
     }
 }

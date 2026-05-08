@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Ticketing.Application.Common.Responses;
 using Ticketing.Application.DTOs.User;
 using Ticketing.Application.Interfaces.Persistence;
 using Ticketing.Application.Interfaces.User;
@@ -39,17 +40,72 @@ public class UserService : IUserService
         return (true, eventDto, null);
     }
 
-    public async Task<(bool IsSuccess, List<EventDto> Events, string? ErrorMessage)> GetEventsAsync(CancellationToken cancellationToken = default)
+    public async Task<(bool IsSuccess, ApiPagedResponse<EventDto>? Events, string? ErrorMessage)> GetEventsAsync(UserEventsFilterDto filter, CancellationToken cancellationToken = default)
     {
-        var events = await _unitOfWork.Events.GetAll().AsNoTracking().Where(e=>e.Status == EventStatus.Published)
-        .Select(e => new EventDto {
-            Id = e.Id,
-            Name = e.Name,
-            Description = e.Description,
-            BookingMode = e.BookingMode,
-            OwnerId = e.OwnerId,
-        }).ToListAsync(cancellationToken);
-        return (true, events, null);
+        var pageNumber = filter.PageNumber <= 0 ? 1 : filter.PageNumber;
+        var pageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
+        pageSize = Math.Min(pageSize, 50);
+
+        var query = _unitOfWork.Events.GetAll().AsNoTracking()
+            .Where(e => e.Status == EventStatus.Published);
+
+        if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+        {
+            var term = filter.SearchTerm.Trim();
+            query = query.Where(e => e.Name.Contains(term) || e.Description.Contains(term));
+        }
+
+        if (filter.Id.HasValue)
+        {
+            query = query.Where(e => e.Id == filter.Id.Value);
+        }
+
+        if (filter.OwnerId.HasValue)
+        {
+            query = query.Where(e => e.OwnerId == filter.OwnerId.Value);
+        }
+
+        if (filter.BookingMode.HasValue)
+        {
+            query = query.Where(e => e.BookingMode == filter.BookingMode.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Name))
+        {
+            var name = filter.Name.Trim();
+            query = query.Where(e => e.Name.Contains(name));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Description))
+        {
+            var desc = filter.Description.Trim();
+            query = query.Where(e => e.Description.Contains(desc));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var events = await query
+            .OrderByDescending(e => e.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(e => new EventDto
+            {
+                Id = e.Id,
+                Name = e.Name,
+                Description = e.Description,
+                BookingMode = e.BookingMode,
+                OwnerId = e.OwnerId,
+            })
+            .ToListAsync(cancellationToken);
+
+        var response = new ApiPagedResponse<EventDto>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Items = events
+        };
+
+        return (true, response, null);
     }
 
 
