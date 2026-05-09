@@ -4,14 +4,18 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Ticketing.Application;
+using Ticketing.Application.Interfaces.Booking;
 using Ticketing.Application.Interfaces.Email;
 using Ticketing.Application.Interfaces.EventOwner;
 using Ticketing.Application.Interfaces.Persistence;
+using Ticketing.Application.Interfaces.User;
 using Ticketing.Infrastructure.Auth;
+using Ticketing.Infrastructure.Booking;
 using Ticketing.Infrastructure.Email;
 using Ticketing.Infrastructure.EventOwner;
 using Ticketing.Infrastructure.Identity;
 using Ticketing.Infrastructure.Persistence;
+using Ticketing.Infrastructure.User;
 
 namespace Ticketing.Infrastructure.Auth;
 
@@ -56,6 +60,9 @@ public static class DependencyInjection
         services.AddScoped<IEventOwnerService, EventOwnerService>();
 
         services.AddScoped<IAuthService, AuthService>();
+
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IBookingService, BookingService>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 

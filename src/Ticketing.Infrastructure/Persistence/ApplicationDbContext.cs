@@ -16,7 +16,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<EventSession> EventSessions { get; set; } = null!;
     public DbSet<Seat> Seats { get; set; } = null!;
     public DbSet<TicketType> TicketTypes { get; set; } = null!;
-    public DbSet<Booking> Bookings { get; set; } = null!;
+    public DbSet<Domain.Entities.Booking> Bookings { get; set; } = null!;
     public DbSet<BookingTicketType> BookingTicketTypes { get; set; } = null!;
     public DbSet<BookingTicketSeat> BookingTicketSeats { get; set; } = null!;
     public DbSet<Payment> Payments { get; set; } = null!;
