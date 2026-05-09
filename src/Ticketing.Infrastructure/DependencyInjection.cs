@@ -52,7 +52,7 @@ public static class DependencyInjection
 
         services.Configure<EmailSettings>(
             configuration.GetSection("EmailSettings"));
-        
+
         services.AddSignalR();
 
         services.AddScoped<IEmailService, EmailService>();

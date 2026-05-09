@@ -40,9 +40,9 @@ public class BookingService : IBookingService
         try
         {
             var session = await _unitOfWork.EventSessions
-            .GetAll()
-            .Include(s => s.Event)
-            .FirstOrDefaultAsync(s => s.Id == dto.SessionId, cancellationToken);
+                .GetAll()
+                .Include(s => s.Event)
+                .FirstOrDefaultAsync(s => s.Id == dto.SessionId, cancellationToken);
 
             if (session == null)
                 return await FailBookingAsync("Session not found", cancellationToken);
@@ -67,16 +67,18 @@ public class BookingService : IBookingService
             if (seatIds.Count != dto.SeatIds.Count)
                 return await FailBookingAsync("Duplicate seats are not allowed", cancellationToken);
 
+            var claimed = await _unitOfWork.TryAtomicallyBookSeatsAsync(seatIds, dto.SessionId, cancellationToken);
+            if (!claimed)
+                return await FailBookingAsync("One or more seats are not available", cancellationToken);
+
             var seats = await _unitOfWork.Seats
                 .GetAll()
-                .Where(s => seatIds.Contains(s.Id) && s.EventSessionId == dto.SessionId)
+                .AsNoTracking()
+                .Where(s => seatIds.Contains(s.Id) && s.EventSessionId == dto.SessionId && s.Status == SeatStatus.Booked)
                 .ToListAsync(cancellationToken);
 
             if (seats.Count != seatIds.Count)
                 return await FailBookingAsync("One or more seats were not found in this session", cancellationToken);
-
-            if (seats.Any(s => s.Status != SeatStatus.Available))
-                return await FailBookingAsync("One or more seats are not available", cancellationToken);
 
             var totalPrice = seats.Sum(s => s.Price);
 
@@ -95,8 +97,6 @@ public class BookingService : IBookingService
 
             foreach (var seat in seats)
             {
-                seat.Status = SeatStatus.Booked;
-
                 var bookingSeat = new BookingTicketSeat
                 {
                     Price = seat.Price,
@@ -120,7 +120,6 @@ public class BookingService : IBookingService
 
             return (false, 0, "Booking failed. Please try again.");
         }
-        
     }
 
     public async Task<(bool IsSuccess, int BookingId, string? ErrorMessage)> CreateTicketTypeBookingAsync(CreateTicketTypeBookingDto dto, int userId, CancellationToken cancellationToken = default)
@@ -161,30 +160,32 @@ public class BookingService : IBookingService
             if (ticketTypeIds.Distinct().Count() != ticketTypeIds.Count)
                 return await FailBookingAsync("Duplicate ticket types are not allowed", cancellationToken);
 
+            var reserveLines = dto.TicketTypes
+                .Select(item => (item.TicketTypeId, item.Quantity))
+                .ToList();
+
+            var reserved = await _unitOfWork.TryAtomicallyReserveTicketTypesAsync(
+                dto.SessionId,
+                reserveLines,
+                cancellationToken);
+
+            if (!reserved)
+                return await FailBookingAsync("One or more ticket types are not available or not active", cancellationToken);
+
             var ticketTypes = await _unitOfWork.TicketTypes
                 .GetAll()
-                .Where(ticketType =>
-                    ticketTypeIds.Contains(ticketType.Id) &&
-                    ticketType.EventSessionId == dto.SessionId)
+                .AsNoTracking()
+                .Where(t =>
+                    ticketTypeIds.Contains(t.Id) &&
+                    t.EventSessionId == dto.SessionId)
                 .ToListAsync(cancellationToken);
 
             if (ticketTypes.Count != ticketTypeIds.Count)
                 return await FailBookingAsync("One or more ticket types were not found in this session", cancellationToken);
 
-            if (ticketTypes.Any(ticketType => ticketType.Status != TicketTypeStatus.Active))
-                return await FailBookingAsync("One or more ticket types are not active", cancellationToken);
-
-            foreach (var item in dto.TicketTypes)
-            {
-                var ticketType = ticketTypes.First(ticketType => ticketType.Id == item.TicketTypeId);
-
-                if (ticketType.AvailableQuantity < item.Quantity)
-                    return await FailBookingAsync($"Not enough available quantity for {ticketType.Name}", cancellationToken);
-            }
-
             var totalPrice = dto.TicketTypes.Sum(item =>
             {
-                var ticketType = ticketTypes.First(ticketType => ticketType.Id == item.TicketTypeId);
+                var ticketType = ticketTypes.First(t => t.Id == item.TicketTypeId);
                 return ticketType.Price * item.Quantity;
             });
 
@@ -203,16 +204,14 @@ public class BookingService : IBookingService
 
             foreach (var item in dto.TicketTypes)
             {
-                var ticketType = ticketTypes.First(ticketType => ticketType.Id == item.TicketTypeId);
-
-                ticketType.AvailableQuantity -= item.Quantity;
+                var ticketType = ticketTypes.First(t => t.Id == item.TicketTypeId);
 
                 var bookingTicketType = new BookingTicketType
                 {
                     Quantity = item.Quantity,
                     UnitPrice = ticketType.Price,
                     Booking = booking,
-                    TicketTypes = ticketType,
+                    TicketTypesId = ticketType.Id,
                 };
 
                 await _unitOfWork.BookingTicketTypes.AddAsync(bookingTicketType, cancellationToken);
