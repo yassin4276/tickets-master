@@ -55,32 +55,7 @@ public class UserService : IUserService
             query = query.Where(e => e.Name.Contains(term) || e.Description.Contains(term));
         }
 
-        if (filter.Id.HasValue)
-        {
-            query = query.Where(e => e.Id == filter.Id.Value);
-        }
-
-        if (filter.OwnerId.HasValue)
-        {
-            query = query.Where(e => e.OwnerId == filter.OwnerId.Value);
-        }
-
-        if (filter.BookingMode.HasValue)
-        {
-            query = query.Where(e => e.BookingMode == filter.BookingMode.Value);
-        }
-
-        if (!string.IsNullOrWhiteSpace(filter.Name))
-        {
-            var name = filter.Name.Trim();
-            query = query.Where(e => e.Name.Contains(name));
-        }
-
-        if (!string.IsNullOrWhiteSpace(filter.Description))
-        {
-            var desc = filter.Description.Trim();
-            query = query.Where(e => e.Description.Contains(desc));
-        }
+        
 
         var totalCount = await query.CountAsync(cancellationToken);
         var events = await query
