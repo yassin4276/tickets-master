@@ -6,10 +6,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Ticketing.Application;
-using Ticketing.Infrastructure.Auth;
+using Ticketing.Infrastructure;
 using Ticketing.Infrastructure.Identity.Seed;
 using Ticketing.Infrastructure.Persistence;
 using Ticketing.Infrastructure.Persistence.Seed;
+using Ticketing.Infrastructure.RealTime;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +20,32 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers();
+
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("WebClient", policy =>
+    {
+        if (corsOrigins.Length > 0)
+        {
+            policy.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        }
+        else if (builder.Environment.IsDevelopment())
+        {
+            policy
+                .SetIsOriginAllowed(static origin =>
+                    origin.StartsWith("http://localhost:", StringComparison.OrdinalIgnoreCase)
+                    || origin.StartsWith("https://localhost:", StringComparison.OrdinalIgnoreCase))
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        }
+        else
+        {
+            policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin();
+        }
+    });
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -71,6 +98,22 @@ builder.Services
 
             ClockSkew = TimeSpan.Zero
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments(BookingNotificationHub.Path))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -110,10 +153,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("WebClient");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<BookingNotificationHub>(BookingNotificationHub.Path).RequireCors("WebClient");
 
 app.Run();
 

@@ -1,20 +1,24 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Ticketing.Application.Common.Responses;
 using Ticketing.Application.DTOs.Booking;
 using Ticketing.Application.Interfaces.Booking;
 using Ticketing.Application.Interfaces.Persistence;
 using Ticketing.Domain.Entities;
 using Ticketing.Domain.Enums;
+using Ticketing.Infrastructure.RealTime;
 
 namespace Ticketing.Infrastructure.Booking;
 
 public class BookingService : IBookingService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IHubContext<BookingNotificationHub> _hubContext;
 
-    public BookingService(IUnitOfWork unitOfWork)
+    public BookingService(IUnitOfWork unitOfWork, IHubContext<BookingNotificationHub> hubContext)
     {
         _unitOfWork = unitOfWork;
+        _hubContext = hubContext;
     }
     private string GenerateBookingNumber()
     {
@@ -105,6 +109,8 @@ public class BookingService : IBookingService
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
+
+            await NotifySeatsBookedAsync(dto.SessionId, seats.Select(s => s.Id).ToList(), cancellationToken);
 
             return (true, booking.Id, null);
         }
@@ -215,6 +221,11 @@ public class BookingService : IBookingService
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
+            await NotifyTicketAvailabilityAsync(
+                dto.SessionId,
+                ticketTypes.Select(t => (t.Id, t.AvailableQuantity)).ToList(),
+                cancellationToken);
+
             return (true, booking.Id, null);
         }
         catch (Exception)
@@ -231,12 +242,13 @@ public class BookingService : IBookingService
         try
         {
             var booking = await _unitOfWork.Bookings
-            .GetAll()
-            .Include(b => b.EventSession)
-            .Include(b => b.BookingTicketSeats)
-                .ThenInclude(bs => bs.Seat)
-            .Include(b => b.BookingTicketTypes)
-                .ThenInclude(bt => bt.TicketTypes)
+                .GetAll()
+                .Include(b => b.EventSession)
+                    .ThenInclude(es => es.Event)
+                .Include(b => b.BookingTicketSeats)
+                    .ThenInclude(bs => bs.Seat)
+                .Include(b => b.BookingTicketTypes)
+                    .ThenInclude(bt => bt.TicketTypes)
             .FirstOrDefaultAsync(
                 b => b.Id == bookingId && b.UserId == userId,
                 cancellationToken);
@@ -269,6 +281,8 @@ public class BookingService : IBookingService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
+        await NotifyBookingCancelledAsync(booking, cancellationToken);
+
         return (true, booking.Id, null);
         }
         catch (Exception)
@@ -277,6 +291,85 @@ public class BookingService : IBookingService
             return (false, 0, "Booking failed. Please try again.");
         }
         
+    }
+
+    private Task NotifySeatsBookedAsync(int sessionId, List<int> seatIds, CancellationToken cancellationToken)
+    {
+        if (seatIds.Count == 0)
+            return Task.CompletedTask;
+
+        var message = new SeatBookingRealtimeMessage
+        {
+            SessionId = sessionId,
+            SeatIds = seatIds,
+            Status = SeatStatus.Booked.ToString()
+        };
+
+        return _hubContext.Clients
+            .Group(BookingNotificationHub.SessionGroupName(sessionId))
+            .SendAsync("ReceiveSeatBookingUpdate", message, cancellationToken);
+    }
+
+    private Task NotifySeatsReleasedAsync(int sessionId, List<int> seatIds, CancellationToken cancellationToken)
+    {
+        if (seatIds.Count == 0)
+            return Task.CompletedTask;
+
+        var message = new SeatBookingRealtimeMessage
+        {
+            SessionId = sessionId,
+            SeatIds = seatIds,
+            Status = SeatStatus.Available.ToString()
+        };
+
+        return _hubContext.Clients
+            .Group(BookingNotificationHub.SessionGroupName(sessionId))
+            .SendAsync("ReceiveSeatBookingUpdate", message, cancellationToken);
+    }
+
+    private Task NotifyTicketAvailabilityAsync(
+        int sessionId,
+        IReadOnlyList<(int TicketTypeId, int AvailableQuantity)> updates,
+        CancellationToken cancellationToken)
+    {
+        if (updates.Count == 0)
+            return Task.CompletedTask;
+
+        var message = new TicketAvailabilityRealtimeMessage
+        {
+            SessionId = sessionId,
+            Updates = updates
+                .Select(u => new TicketTypeAvailabilityItem
+                {
+                    TicketTypeId = u.TicketTypeId,
+                    AvailableQuantity = u.AvailableQuantity
+                })
+                .ToList()
+        };
+
+        return _hubContext.Clients
+            .Group(BookingNotificationHub.SessionGroupName(sessionId))
+            .SendAsync("ReceiveTicketAvailabilityUpdate", message, cancellationToken);
+    }
+
+    private async Task NotifyBookingCancelledAsync(global::Ticketing.Domain.Entities.Booking booking, CancellationToken cancellationToken)
+    {
+        var sessionId = booking.EventSessionId;
+
+        if (booking.EventSession.Event.BookingMode == EventBookingMode.Seats)
+        {
+            var seatIds = booking.BookingTicketSeats.Select(bs => bs.SeatId).ToList();
+            await NotifySeatsReleasedAsync(sessionId, seatIds, cancellationToken);
+            return;
+        }
+
+        if (booking.EventSession.Event.BookingMode == EventBookingMode.Tickets)
+        {
+            var updates = booking.BookingTicketTypes
+                .Select(bt => (bt.TicketTypesId, bt.TicketTypes.AvailableQuantity))
+                .ToList();
+            await NotifyTicketAvailabilityAsync(sessionId, updates, cancellationToken);
+        }
     }
 
     public async Task<(bool IsSuccess, ApiPagedResponse<BookingDto>? Bookings, string? ErrorMessage)> GetMyBookingsAsync(int userId, MyBookingsFilterDto filter, CancellationToken cancellationToken = default)

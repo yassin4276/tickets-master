@@ -17,7 +17,7 @@ using Ticketing.Infrastructure.Identity;
 using Ticketing.Infrastructure.Persistence;
 using Ticketing.Infrastructure.User;
 
-namespace Ticketing.Infrastructure.Auth;
+namespace Ticketing.Infrastructure;
 
 public static class DependencyInjection
 {
@@ -52,6 +52,8 @@ public static class DependencyInjection
 
         services.Configure<EmailSettings>(
             configuration.GetSection("EmailSettings"));
+        
+        services.AddSignalR();
 
         services.AddScoped<IEmailService, EmailService>();
 
