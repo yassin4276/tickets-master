@@ -299,39 +299,10 @@ public class BookingService : IBookingService
                 || b.EventSession.Location.Contains(term));
         }
 
-        if (filter.Id.HasValue)
-        {
-            query = query.Where(b => b.Id == filter.Id.Value);
-        }
-
-        if (!string.IsNullOrWhiteSpace(filter.BookingNumber))
-        {
-            var bn = filter.BookingNumber.Trim();
-            query = query.Where(b => b.BookingNumber.Contains(bn));
-        }
-
         if (filter.Status.HasValue)
         {
             query = query.Where(b => b.Status == filter.Status.Value);
         }
-
-        if (filter.EventSessionId.HasValue)
-        {
-            query = query.Where(b => b.EventSessionId == filter.EventSessionId.Value);
-        }
-
-        if (!string.IsNullOrWhiteSpace(filter.EventName))
-        {
-            var en = filter.EventName.Trim();
-            query = query.Where(b => b.EventSession.Event.Name.Contains(en));
-        }
-
-        if (!string.IsNullOrWhiteSpace(filter.Location))
-        {
-            var loc = filter.Location.Trim();
-            query = query.Where(b => b.EventSession.Location.Contains(loc));
-        }
-
         if (filter.MinTotalAmount.HasValue)
         {
             query = query.Where(b => b.TotalAmount >= filter.MinTotalAmount.Value);
@@ -340,16 +311,6 @@ public class BookingService : IBookingService
         if (filter.MaxTotalAmount.HasValue)
         {
             query = query.Where(b => b.TotalAmount <= filter.MaxTotalAmount.Value);
-        }
-
-        if (filter.CreatedFrom.HasValue)
-        {
-            query = query.Where(b => b.CreatedAt >= filter.CreatedFrom.Value);
-        }
-
-        if (filter.CreatedTo.HasValue)
-        {
-            query = query.Where(b => b.CreatedAt <= filter.CreatedTo.Value);
         }
 
         if (filter.SessionStartFrom.HasValue)
@@ -362,15 +323,7 @@ public class BookingService : IBookingService
             query = query.Where(b => b.EventSession.StartTime <= filter.SessionStartTo.Value);
         }
 
-        if (filter.SessionEndFrom.HasValue)
-        {
-            query = query.Where(b => b.EventSession.EndTime >= filter.SessionEndFrom.Value);
-        }
-
-        if (filter.SessionEndTo.HasValue)
-        {
-            query = query.Where(b => b.EventSession.EndTime <= filter.SessionEndTo.Value);
-        }
+        
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
