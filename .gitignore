@@ -15,3 +15,4 @@ appsettings.development.json
 crash.log
 crash.*.log
 .terraform.lock.hcl
+appsettings.Development.json
