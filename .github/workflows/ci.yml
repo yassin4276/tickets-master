@@ -33,3 +33,24 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t ticketing-api .
+      
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ghcr.io/yassin4276/ticketing-api:latest \
+            -t ghcr.io/yassin4276/ticketing-api:${{ github.sha }} \
+            .
+
+      - name: Push Docker image
+        if: github.event_name == 'push'
+        run: |
+          docker push ghcr.io/yassin4276/ticketing-api:latest
+          docker push ghcr.io/yassin4276/ticketing-api:${{ github.sha }}
