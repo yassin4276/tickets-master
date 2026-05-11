@@ -1,0 +1,51 @@
+services:
+  ticketing-postgres:
+    image: postgres:15
+    container_name: ticketing-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ticketing-postgres-data:/var/lib/postgresql/data
+    networks:
+      - ticketing-network
+
+  ticketing-api:
+    image: ${API_IMAGE}
+    container_name: ticketing-api
+    restart: unless-stopped
+    depends_on:
+      - ticketing-postgres
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+
+      ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING}
+
+      JwtSettings__SecretKey: ${JWT_SECRET_KEY}
+      JwtSettings__Issuer: ${JWT_ISSUER}
+      JwtSettings__Audience: ${JWT_AUDIENCE}
+      JwtSettings__ExpirationMinutes: ${JWT_EXPIRATION_MINUTES}
+      JwtSettings__RefreshTokenExpiryDays: ${JWT_REFRESH_TOKEN_EXPIRY_DAYS}
+      JwtSettings__RefreshTokenAudience: ${JWT_REFRESH_TOKEN_AUDIENCE}
+
+      AppUrls__PublicBaseUrl: ${PUBLIC_BASE_URL}
+
+      EmailSettings__Host: ${EMAIL_HOST}
+      EmailSettings__Port: ${EMAIL_PORT}
+      EmailSettings__Username: ${EMAIL_USERNAME}
+      EmailSettings__Password: ${EMAIL_PASSWORD}
+      EmailSettings__FromEmail: ${EMAIL_FROM_EMAIL}
+      EmailSettings__FromName: ${EMAIL_FROM_NAME}
+    ports:
+      - "8080:8080"
+    networks:
+      - ticketing-network
+
+volumes:
+  ticketing-postgres-data:
+
+networks:
+  ticketing-network:

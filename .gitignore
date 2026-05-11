@@ -6,3 +6,4 @@ obj/
 *.suo
 .env
 appsettings.development.json
+.env.prod
