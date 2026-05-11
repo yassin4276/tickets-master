@@ -7,3 +7,11 @@ obj/
 .env
 appsettings.development.json
 .env.prod
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+crash.*.log
+.terraform.lock.hcl
