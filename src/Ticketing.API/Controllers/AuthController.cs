@@ -163,5 +163,11 @@ namespace Ticketing.API.Controllers
             }
             return Ok(ApiResponse<string?>.Ok(null, "Password reset successfully"));
         }
+
+        [HttpGet("cd-test")]
+        public IActionResult CdTest()
+        {
+            return Ok(ApiResponse<string?>.Ok(null, "CD test successful"));
+        }
     }
 }
