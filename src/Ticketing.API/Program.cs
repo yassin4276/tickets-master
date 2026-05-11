@@ -1,10 +1,14 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Ticketing.API.HealthChecks;
 using Ticketing.Application;
 using Ticketing.Infrastructure;
 using Ticketing.Infrastructure.Identity.Seed;
@@ -118,6 +122,12 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>(
+        name: "database",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: new[] { "ready", "db" });
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -160,9 +170,43 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false,
+    ResponseWriter = WriteHealthCheckResponse
+});
+
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    Predicate = _ => true,
+    ResponseWriter = WriteHealthCheckResponse
+});
+
 app.MapHub<BookingNotificationHub>(BookingNotificationHub.Path).RequireCors("WebClient");
 
 app.Run();
+
+static Task WriteHealthCheckResponse(HttpContext context, HealthReport report)
+{
+    context.Response.ContentType = "application/json; charset=utf-8";
+
+    var payload = new
+    {
+        status = report.Status.ToString(),
+        totalDurationMs = report.TotalDuration.TotalMilliseconds,
+        checks = report.Entries.Select(entry => new
+        {
+            name = entry.Key,
+            status = entry.Value.Status.ToString(),
+            description = entry.Value.Description,
+            durationMs = entry.Value.Duration.TotalMilliseconds,
+            error = entry.Value.Exception?.Message
+        })
+    };
+
+    return context.Response.WriteAsync(
+        JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = false }));
+}
 
 public partial class Program { }
 

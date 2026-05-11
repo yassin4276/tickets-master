@@ -33,3 +33,5 @@ jobs:
             docker image prune -f
 
             docker ps
+
+            curl -f http://localhost:8080/health
