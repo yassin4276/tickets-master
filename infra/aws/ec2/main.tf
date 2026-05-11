@@ -119,6 +119,14 @@ resource "aws_security_group" "app" {
     cidr_blocks = [var.my_ip_cidr]
   }
 
+  ingress {
+    description = "SSH from GitHub Actions temporary"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     description = "Allow all outbound traffic"
     from_port   = 0
