@@ -111,13 +111,7 @@ resource "aws_security_group" "app" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    description = "Temporary API access from my IP"
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = [var.my_ip_cidr]
-  }
+
 
   ingress {
     description = "SSH from GitHub Actions temporary"

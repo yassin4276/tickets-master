@@ -34,4 +34,4 @@ jobs:
 
             docker ps
 
-            curl -f http://localhost:8080/health
+            curl -f http://localhost/health

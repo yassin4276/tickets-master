@@ -39,8 +39,21 @@ services:
       EmailSettings__Password: ${EMAIL_PASSWORD}
       EmailSettings__FromEmail: ${EMAIL_FROM_EMAIL}
       EmailSettings__FromName: ${EMAIL_FROM_NAME}
+    expose:
+      - "8080"
+    networks:
+      - ticketing-network
+  
+  ticketing-nginx:
+    image: nginx:alpine
+    container_name: ticketing-nginx
+    restart: unless-stopped
+    depends_on:
+      - ticketing-api
     ports:
-      - "8080:8080"
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
       - ticketing-network
 
