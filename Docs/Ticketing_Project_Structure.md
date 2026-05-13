@@ -4,7 +4,7 @@
 
 This document defines the planned project structure for the Ticketing Platform.
 
-The project will follow **Clean Architecture** to keep the business logic separated from external concerns such as API controllers, database access, authentication, file storage, Redis, SignalR, and deployment details.
+The project will follow **Clean Architecture** to keep the business logic separated from external concerns such as API controllers, database access, authentication, file storage, optional distributed caching (planned), SignalR, and deployment details.
 
 The solution will be organized into four main projects:
 
@@ -87,7 +87,7 @@ Controllers
 Entity Framework DbContext
 Database migrations
 HTTP logic
-Redis logic
+Distributed cache infrastructure logic (if used later)
 SignalR logic
 S3 logic
 External service implementation
@@ -160,7 +160,7 @@ The Application layer should not contain:
 Controllers
 EF Core DbContext implementation
 PostgreSQL implementation
-Redis implementation
+Distributed cache implementation (if used later)
 SignalR implementation
 S3 implementation
 ```
@@ -260,7 +260,7 @@ Ticketing.Domain
 - ASP.NET Core Identity implementation
 - Repository implementations if used
 - File storage implementation
-- Redis implementation later
+- Optional distributed cache implementation later
 - SignalR infrastructure later
 - External services
 
@@ -291,7 +291,7 @@ Ticketing.Infrastructure/
 │   └── S3FileStorageService.cs
 │
 ├── Caching/
-│   └── RedisCacheService.cs
+│   └── CacheService.cs (planned)
 │
 ├── Realtime/
 │   └── SignalRNotificationService.cs
@@ -690,7 +690,7 @@ Ticketing.API/BackgroundJobs
 
 ### Future Features
 
-- Redis caching
+- Optional distributed caching (planned)
 - SignalR real-time updates
 - S3 file storage
 - Background job for expired bookings

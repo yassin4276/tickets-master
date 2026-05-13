@@ -135,7 +135,7 @@ These run inside the **same EF transaction** started by `BookingService`:
 ### 5.5 Dependency Injection
 
 - **`AddInfrastructure`** — Npgsql, Identity, JWT/URL/email options, **SignalR**, service registrations, `IUnitOfWork`.  
-- **No Redis** in the current codebase (previous external cache integration removed).
+- **No external cache service** in the current codebase; any caching layer remains optional and planned only.
 
 ---
 
@@ -250,7 +250,7 @@ Registration can specify a role (default `User` in `RegisterDto`).
 
 ## 11. Other Repository Docs
 
-- **`Docs/`** and **`README.md`** may describe planned or historical features (e.g. Redis). **Current code behavior** is the source of truth alongside this file.
+- **`Docs/`** and **`README.md`** may describe planned or historical features. **Current code behavior** is the source of truth alongside this file.
 
 ---
 
@@ -265,4 +265,4 @@ Registration can specify a role (default `User` in `RegisterDto`).
 
 ---
 
-*Last updated to match the current repository state: no Redis; SignalR enabled; atomic seat and ticket-type booking as described above.*
+*Last updated to match the current repository state: no external cache service; SignalR enabled; atomic seat and ticket-type booking as described above.*

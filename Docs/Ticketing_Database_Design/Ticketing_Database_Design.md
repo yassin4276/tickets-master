@@ -362,7 +362,7 @@ For seat booking concurrency, use a database transaction and either:
 - row-level locks during reservation, or
 - a partial unique strategy for active booking states.
 
-### Redis Usage Later
+### Optional caching later
 
-Redis can be added later for faster temporary seat reservation checks and real-time availability caching, but PostgreSQL should remain the source of truth.
+A distributed cache may be added later for faster temporary seat reservation checks and availability reads, but PostgreSQL should remain the source of truth. **No external cache is required or used in the current codebase.**
 

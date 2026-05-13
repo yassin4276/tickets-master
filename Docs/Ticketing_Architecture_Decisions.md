@@ -34,7 +34,7 @@ Accepted
 
 The system contains multiple business rules around events, sessions, seats, ticket types, bookings, payments, notifications, and roles.
 
-These business rules should not be tightly coupled to the database, API controllers, Redis, SignalR, or any external infrastructure.
+These business rules should not be tightly coupled to the database, API controllers, optional caching layers, SignalR, or any external infrastructure.
 
 Examples of business rules include:
 
@@ -62,7 +62,7 @@ src/
 |---|---|
 | Domain | Core entities, enums, domain rules, and business concepts |
 | Application | Use cases, services, DTOs, validation, interfaces |
-| Infrastructure | Database, Redis, SignalR implementation, external services |
+| Infrastructure | Database, optional caching, SignalR implementation, external services |
 | API | Controllers, authentication, authorization, request/response handling |
 
 ## Consequences
@@ -137,11 +137,11 @@ PostgreSQL will store the source of truth for:
 
 ---
 
-# ADR-003: Use Redis for Caching and Temporary Reservation State
+# ADR-003: Optional distributed cache for caching and temporary reservation state (planned)
 
 ## Status
 
-Accepted for later stage
+Planned — **not implemented**. The codebase relies on PostgreSQL only today; this ADR records a possible future direction.
 
 ## Context
 
@@ -160,7 +160,7 @@ Example:
 
 ## Decision
 
-Use Redis for:
+If a distributed cache is introduced later, it could be used for:
 
 - Caching frequently accessed event/session availability data
 - Temporary seat reservation locks
@@ -169,22 +169,22 @@ Use Redis for:
 
 PostgreSQL remains the source of truth.
 
-Redis should not be the only place where permanent booking data is stored.
+A cache must not be the only place where permanent booking data is stored.
 
 ## Consequences
 
 ### Positive
 
-- Faster availability lookups
+- Faster availability lookups when a cache is present
 - Useful for temporary locks and expiration
-- Reduces database load
+- Reduces database load at high read volume
 - Helpful for real-time booking scenarios
 
 ### Negative
 
-- Adds infrastructure complexity
+- Adds infrastructure complexity when adopted
 - Requires cache invalidation strategy
-- Requires careful handling to avoid mismatch between Redis and PostgreSQL
+- Requires careful handling to avoid mismatch between cache and PostgreSQL
 
 ---
 
@@ -226,7 +226,7 @@ SignalR will be used for:
 
 - More complexity in deployment
 - Requires connection management
-- Scaling may require Redis backplane or another distributed messaging approach
+- Scaling may require a distributed backplane (for example Azure SignalR Service or another compatible message bus) if self-hosted hubs outgrow a single node
 
 ---
 
@@ -387,8 +387,7 @@ The system includes multiple services:
 
 - ASP.NET Core API
 - PostgreSQL
-- Redis
-- Possibly background workers later
+- Optional distributed cache or background workers later, if needed
 
 The development and deployment environments should be consistent.
 
@@ -399,7 +398,7 @@ Use Docker to containerize the application and supporting services.
 Docker will be used for:
 
 - Local development
-- Running PostgreSQL and Redis
+- Running PostgreSQL (and any optional supporting services you add later, such as a cache)
 - Packaging the ASP.NET Core API
 - Preparing the project for CI/CD and Kubernetes deployment
 
@@ -489,7 +488,7 @@ Potential AWS services:
 |---|---|
 | API hosting | EKS or EC2 |
 | PostgreSQL database | Amazon RDS PostgreSQL |
-| Redis cache | Amazon ElastiCache for Redis |
+| Optional cache layer | Managed in-memory cache on AWS (only if caching is adopted) |
 | File storage | Amazon S3 |
 | Monitoring/logging | Amazon CloudWatch |
 | DNS | Route 53 |
@@ -566,7 +565,7 @@ Accepted
 
 ## Context
 
-Redis and SignalR may be used for performance and real-time updates, but they should not replace the main persistent database.
+Optional caching and SignalR may be used later for performance and real-time updates, but they should not replace the main persistent database.
 
 Booking, payment, and event data must be reliable and recoverable.
 
@@ -574,14 +573,14 @@ Booking, payment, and event data must be reliable and recoverable.
 
 PostgreSQL will remain the source of truth for all persistent data.
 
-Redis may store temporary or cached data, but permanent state must be stored in PostgreSQL.
+Any optional cache may store temporary or derived data, but permanent state must be stored in PostgreSQL.
 
 ## Consequences
 
 ### Positive
 
 - Reliable data persistence
-- Easier recovery after Redis restart
+- Easier recovery after cache loss or eviction
 - Clear system ownership of data
 - Better consistency for important workflows
 
@@ -658,7 +657,7 @@ The MVP will focus on:
 
 Later stages will add:
 
-- Redis
+- Optional distributed caching (planned)
 - SignalR
 - Docker deployment
 - CI/CD

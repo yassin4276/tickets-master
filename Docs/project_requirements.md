@@ -200,16 +200,19 @@ Event owners may see real-time updates for bookings and seat status related to t
 
 ---
 
-### 2.8 Redis Caching
+### 2.8 Optional distributed caching (planned)
 
-#### Seat Availability Cache
-The system shall use Redis to speed up seat availability lookups.
+#### Seat availability cache (future)
 
-#### Cache Invalidation
-The system shall update or invalidate cached seat data when seat status changes.
+If a cache is introduced later, it may speed up seat availability reads. **This project does not use an external cache service today.**
 
-#### Event Listing Cache
-The system may cache public event listings to improve performance.
+#### Cache invalidation (future)
+
+If caching is added, cached seat data must be updated or invalidated when seat status changes.
+
+#### Event listing cache (future)
+
+Public event listings may be cached later for performance.
 
 ---
 
@@ -240,7 +243,7 @@ Admins may be able to:
 
 ### 3.1 Performance
 - The system should respond quickly to event and seat availability requests.
-- Redis should be used later to reduce database load for frequent seat lookups.
+- An optional distributed cache may be introduced later to reduce database load for frequent seat lookups; it is **not** part of the current implementation.
 - PostgreSQL indexes should be added on frequently queried columns.
 
 ### 3.2 Scalability
@@ -309,7 +312,7 @@ The first version shall include:
 
 ### Post-MVP Features
 The following features can be added after the MVP:
-- Redis caching
+- Optional distributed caching (planned, not in current codebase)
 - SignalR real-time updates
 - Event owner dashboard analytics
 - Admin moderation workflow
@@ -330,7 +333,7 @@ The following features can be added after the MVP:
 - Admins mainly monitor and moderate the platform.
 - The first deployment can be done using Docker Compose before Kubernetes.
 - PostgreSQL will be the main source of truth.
-- Redis will be used as a cache, not as the primary database.
+- If a distributed cache is adopted later, it will be auxiliary only — PostgreSQL remains the primary database and source of truth.
 
 ---
 

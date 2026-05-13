@@ -7,7 +7,7 @@ This document defines the MVP and the extended learning scope for the Ticketing 
 The project is educational and portfolio-oriented.  
 The main goal is not only to build a working ticketing system, but also to practice building a production-wise backend project from planning to deployment.
 
-The project should start with a clear MVP, then expand gradually to include more production-ready features such as Redis, SignalR, Docker, CI/CD, Kubernetes, AWS services, monitoring, and advanced deployment practices.
+The project should start with a clear MVP, then expand gradually to include more production-ready features such as optional distributed caching, SignalR, Docker, CI/CD, Kubernetes, AWS services, monitoring, and advanced deployment practices.
 
 ---
 
@@ -358,7 +358,7 @@ The admin role is mainly for monitoring and moderation.
 The following features are excluded from the first MVP, but planned for later stages.
 
 ```text
-Redis
+Optional distributed cache (planned)
 SignalR
 Kubernetes
 Terraform
@@ -455,7 +455,7 @@ Optional AWS services:
 ```text
 Lambda
 RDS PostgreSQL
-ElastiCache Redis
+Managed in-memory cache (optional)
 ```
 
 ---
@@ -484,7 +484,7 @@ Liveness probe
 Later stages may include:
 
 ```text
-Redis
+Optional distributed cache (planned)
 SignalR
 Seat availability caching
 Temporary reservation locks
@@ -662,7 +662,7 @@ Swagger documentation
 ## Phase 9: Advanced Learning Scope
 
 ```text
-Redis
+Optional distributed cache (planned)
 SignalR
 AWS services
 Kubernetes
