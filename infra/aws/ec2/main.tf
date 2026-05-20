@@ -143,7 +143,6 @@ resource "aws_instance" "app" {
   key_name                    = aws_key_pair.deployer.key_name
   associate_public_ip_address = true
 
-  user_data = file("${path.module}/user-data.sh")
 
   root_block_device {
     volume_size = var.root_volume_size
@@ -154,5 +153,46 @@ resource "aws_instance" "app" {
   tags = {
     Name    = "${var.project_name}-ec2"
     Project = var.project_name
+  }
+}
+
+resource "terraform_data" "configure_ec2_with_ansible" {
+  depends_on = [aws_instance.app]
+
+  triggers_replace = [
+    aws_instance.app.id,
+    filesha256("${path.module}/../../../ansible/playbook.yml"),
+    filesha256("${path.module}/../../../ansible/roles/server-setup/tasks/main.yml")
+  ]
+
+  provisioner "local-exec" {
+    command = <<EOT
+set -e
+
+echo "Generating Ansible inventory..."
+
+cat > ${path.module}/../../../ansible/inventory.ini <<EOF
+[app_servers]
+ticketing-server ansible_host=${aws_instance.app.public_ip}
+EOF
+
+echo "Waiting for SSH to become available..."
+
+for i in {1..30}; do
+  if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i ~/.ssh/ticketing-aws ubuntu@${aws_instance.app.public_ip} "echo SSH is ready"; then
+    break
+  fi
+
+  echo "SSH not ready yet... retrying in 10 seconds"
+  sleep 10
+done
+
+echo "Running Ansible playbook..."
+
+cd ${path.module}/../../../ansible
+ansible-playbook playbook.yml
+
+echo "Ansible configuration completed successfully."
+EOT
   }
 }

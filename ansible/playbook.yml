@@ -1,0 +1,6 @@
+- name: Configure Ticketing EC2 Server
+  hosts: app_servers
+  become: true
+
+  roles:
+    - server-setup

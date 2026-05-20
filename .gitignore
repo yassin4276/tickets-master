@@ -17,3 +17,4 @@ crash.*.log
 .terraform.lock.hcl
 appsettings.Development.json
 secret.yml
+inventory.ini
