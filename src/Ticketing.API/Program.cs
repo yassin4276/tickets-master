@@ -15,6 +15,7 @@ using Ticketing.Infrastructure.Identity.Seed;
 using Ticketing.Infrastructure.Persistence;
 using Ticketing.Infrastructure.Persistence.Seed;
 using Ticketing.Infrastructure.RealTime;
+using Prometheus;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +25,8 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers();
+
+builder.Services.AddHealthChecks().ForwardToPrometheus();
 
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
@@ -163,6 +166,8 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Production
 
 app.UseHttpsRedirection();
 
+app.UseHttpMetrics();
+
 app.UseCors("WebClient");
 
 app.UseAuthentication();
@@ -181,6 +186,8 @@ app.MapHealthChecks("/health", new HealthCheckOptions
     Predicate = _ => true,
     ResponseWriter = WriteHealthCheckResponse
 });
+
+app.MapMetrics("/metrics");
 
 app.MapHub<BookingNotificationHub>(BookingNotificationHub.Path).RequireCors("WebClient");
 
